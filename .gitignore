@@ -1,0 +1,66 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv
+uv.lock.local
+
+# pytest
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ruff
+.ruff_cache/
+
+# ---- Editors / IDEs ----
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Project artifacts ----
+# 输出文件
+output/
+*.output.yaml
+*.clash.yaml
+
+# 用户配置（保留 config/*.example.yaml）
+config/config.local.yaml
+config/config.yaml
+!config/*.example.yaml
+
+# 敏感信息（订阅 token、cookie 等）
+*.secret
+.env
+.env.*
+!.env.example
+
+# 日志
+*.log
+logs/
