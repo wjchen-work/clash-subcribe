@@ -15,10 +15,6 @@ from clash_subcribe.config import SourceConfig
 from clash_subcribe.exceptions import SourceFetchError
 from clash_subcribe.fetcher import HttpFetcher, redact_url
 
-# --------------------------------------------------------------------------------------
-# FileFetcher
-# --------------------------------------------------------------------------------------
-
 
 def test_file_fetcher_reads_local(tmp_path: Path) -> None:
     sub = tmp_path / "sub.yaml"
@@ -35,11 +31,6 @@ def test_file_fetcher_missing_file(tmp_path: Path) -> None:
     src = SourceConfig(name="local", path=str(tmp_path / "nope.yaml"))
     with pytest.raises(SourceFetchError):
         FileFetcher(src).fetch()
-
-
-# --------------------------------------------------------------------------------------
-# HttpFetcher
-# --------------------------------------------------------------------------------------
 
 
 def test_redact_url_strips_path() -> None:

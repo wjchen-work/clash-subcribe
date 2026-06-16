@@ -7,8 +7,6 @@ import pytest
 from clash_subcribe.exceptions import ParseError
 from clash_subcribe.parser import ClashParser, make_parser
 
-# Uses the ``sample_yaml`` fixture from conftest.
-
 
 def test_parses_valid_proxies(sample_yaml: str) -> None:
     proxies = ClashParser().parse(sample_yaml)
@@ -17,9 +15,8 @@ def test_parses_valid_proxies(sample_yaml: str) -> None:
 
 
 def test_skips_invalid_entries(sample_yaml: str) -> None:
-    # The fixture has a deliberately broken entry (no cipher / password).
     proxies = ClashParser().parse(sample_yaml)
-    assert len(proxies) == 2  # HK-01 + US-NY-01; `broken` is dropped
+    assert len(proxies) == 2
 
 
 def test_empty_yaml_returns_empty() -> None:

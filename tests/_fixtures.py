@@ -1,8 +1,4 @@
-"""Shared test fixtures.
-
-Centralizing sample proxies / YAML keeps individual test files short and
-makes the test data obvious at a glance.
-"""
+"""Shared test fixtures."""
 
 from __future__ import annotations
 
@@ -10,7 +6,6 @@ from textwrap import dedent
 
 from clash_subcribe.models import Proxy
 
-# A small, opinionated roster — covers multiple types + a known duplicate.
 HK_SS = Proxy(
     name="HK-01",
     type="ss",
@@ -53,7 +48,6 @@ JP_FREE = Proxy(
 
 SAMPLE_PROXIES: list[Proxy] = [HK_SS, HK_SS_DUP, JP_TROJAN, US_VMESS, JP_FREE]
 
-# A minimal Clash YAML with one broken entry to exercise the skip counter.
 SAMPLE_YAML = dedent(
     """
     proxies:

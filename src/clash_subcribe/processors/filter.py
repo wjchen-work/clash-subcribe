@@ -1,11 +1,9 @@
 """Filter proxies by keyword / region / protocol.
 
-The matching is intentionally simple: case-insensitive substring against
-``proxy.name`` for keywords, exact (case-insensitive) match against
-``proxy.type`` for protocols. Regions are a tiny convention — see
-:func:`_REGION_PATTERNS` — that scans the name for tokens like
-``HK`` / ``JP`` / ``US-TX`` etc. so the user can write a region list and
-have it Just Work for the most common case.
+Keywords use case-insensitive substring against ``proxy.name``; protocols use
+exact (case-insensitive) match against ``proxy.type``. Region tokens are
+recognized by a small convention (HK / JP / US / TW / SG / UK / DE) so a
+region list works for the most common case.
 """
 
 from __future__ import annotations
@@ -16,7 +14,6 @@ from typing import Any
 from ..models import Proxy
 from .base import Processor, register
 
-# Recognized region tokens, longest first so ``UK-SCT`` beats ``UK``.
 _REGION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("HK", re.compile(r"(?:\b|_|\-| )HK(?:\b|_|\-| )", re.IGNORECASE)),
     ("JP", re.compile(r"(?:\b|_|\-| )JP(?:\b|_|\-| )", re.IGNORECASE)),

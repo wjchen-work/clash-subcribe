@@ -47,6 +47,8 @@ Thumbs.db
 # ---- Project artifacts ----
 # 输出文件
 output/
+output.yaml
+output.yml
 *.output.yaml
 *.clash.yaml
 

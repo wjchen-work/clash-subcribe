@@ -19,7 +19,6 @@ from ..exceptions import SourceFetchError
 
 logger = logging.getLogger(__name__)
 
-# Default retry policy — covers transient network blips without spamming.
 DEFAULT_MAX_ATTEMPTS: Final[int] = 3
 DEFAULT_BACKOFF_SECONDS: Final[float] = 0.5
 
@@ -28,15 +27,14 @@ DEFAULT_BACKOFF_SECONDS: Final[float] = 0.5
 class FetchResult:
     """Carrier for a fetched payload plus a few bookkeeping fields.
 
-    The byte count and duration get fed straight into the §5.2 log line so
-    operators can spot anomalies ("source 3 is suddenly 10× bigger").
+    The byte count and duration get fed straight into the §5.2 log line.
     """
 
     text: str
     bytes: int
     duration_seconds: float
-    status: int | None = None  # HTTP status, when applicable
-    url_redacted: str | None = None  # for HTTP fetches, host/***-redacted URL
+    status: int | None = None
+    url_redacted: str | None = None
 
 
 class Fetcher(abc.ABC):
@@ -46,7 +44,7 @@ class Fetcher(abc.ABC):
     def fetch(self) -> FetchResult:
         """Return the raw subscription text."""
 
-    def __repr__(self) -> str:  # pragma: no cover - cosmetic
+    def __repr__(self) -> str:  # pragma: no cover
         return f"{type(self).__name__}()"
 
 

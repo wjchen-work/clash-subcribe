@@ -1,9 +1,8 @@
 """HTTP(S) subscription fetcher.
 
-Uses :mod:`httpx` synchronously — the rest of the pipeline is sync, and one
-sequential fetch per source is plenty fast on the order of dozens of KB.
-Retries are explicit (not via ``tenacity`` — we deferred that dep) and use
-exponential backoff.
+Uses :mod:`httpx` synchronously — one sequential fetch per source is plenty
+fast on the order of dozens of KB. Retries are explicit (not via
+``tenacity`` — we deferred that dep) and use exponential backoff.
 """
 
 from __future__ import annotations
@@ -23,8 +22,13 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
-# 4xx responses are caller errors; retrying them is pointless.
 _RETRYABLE_STATUS: frozenset[int] = frozenset({408, 425, 429, 500, 502, 503, 504})
+
+# 与 Clash Verge Rev 对齐的 User-Agent。许多机场会按 UA 区分客户端返回不同格式
+# （Clash YAML / Surge / 原始节点链接 / 流量信息），用主流客户端 UA 抓取最稳。
+# Clash Verge Rev 的源码（src-tauri/src/utils/network.rs）拼装格式为
+# ``clash-verge/v{CARGO_PKG_VERSION}``；此处固化到当前稳定版本，后续升级时同步即可。
+CLASH_VERGE_USER_AGENT: str = "clash-verge/v2.5.1"
 
 
 class HttpFetcher(Fetcher):
@@ -39,24 +43,24 @@ class HttpFetcher(Fetcher):
         backoff_seconds: float = DEFAULT_BACKOFF_SECONDS,
         timeout_seconds: float = 15.0,
     ) -> None:
-        if source.url is None:  # defensive — make_fetcher already routes by transport
+        if source.url is None:
             raise ValueError("HttpFetcher requires a source with a URL")
         self._source = source
         self._owns_client = client is None
         self._client = client or httpx.Client(
             follow_redirects=True,
             timeout=timeout_seconds,
-            headers={"User-Agent": "clash-subcribe/0.1"},
+            headers={"User-Agent": CLASH_VERGE_USER_AGENT},
         )
         self._max_attempts = max_attempts
         self._backoff = backoff_seconds
 
     def fetch(self) -> FetchResult:
-        import time  # local import keeps top-of-module import surface small
+        import time
 
         from ..exceptions import SourceFetchError
 
-        url = self._source.url  # type: ignore[assignment]  # checked in __init__
+        url = self._source.url  # type: ignore[assignment]
         redacted = redact_url(url)
         last_exc: Exception | None = None
 
@@ -111,8 +115,7 @@ class HttpFetcher(Fetcher):
                 url_redacted=redacted,
             )
 
-        # All attempts exhausted.
-        assert last_exc is not None  # invariant: a failed loop always sets this
+        assert last_exc is not None
         raise SourceFetchError(
             f"[{self._source.name}] {redacted} 抓取失败 ({self._max_attempts} 次重试): {last_exc}"
         ) from last_exc

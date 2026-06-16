@@ -1,10 +1,5 @@
 """Rename proxies with a uniform prefix / region tag / running index.
 
-Examples (with ``prefix: "[A]"`` and ``add_region_tag: true``)::
-
-    HK-01 [provider]    ->  [A] [HK] 01 [provider]
-    bare-node           ->  [A] 01 bare-node
-
 The index is zero-padded to 3 digits so the YAML diff stays readable.
 """
 
@@ -52,7 +47,6 @@ class RenameProcessor(Processor):
                 parts.append(f"{index:03d}")
             parts.append(base)
             new_name = " ".join(parts)
-            # Pydantic models are not frozen, but we copy() to keep the call site immutable.
             result.append(proxy.model_copy(update={"name": new_name}))
         return result
 

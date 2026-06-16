@@ -1,9 +1,9 @@
 """Processor base class + registry.
 
-A :class:`Processor` is a pure ``list[Proxy] -> list[Proxy]`` function wrapped
-in a small adapter that handles timing + the §5.2 INFO log line. Concrete
-processors live in sibling modules and register themselves via
-:data:`PROCESSORS`.
+A :class:`Processor` is a pure ``list[Proxy] -> list[Proxy]`` function
+wrapped in a small adapter that handles timing + the §5.2 INFO log line.
+Concrete processors live in sibling modules and register via
+:func:`register`.
 """
 
 from __future__ import annotations
@@ -29,7 +29,6 @@ ProcessorBuilder = Callable[[dict[str, Any]], "Processor"]
 class Processor(abc.ABC):
     """Abstract processor — :meth:`apply` is the work; :meth:`__call__` is sugar."""
 
-    #: Stable name used in the YAML config and the log lines.
     name: ClassVar[str] = ""
 
     @abc.abstractmethod
@@ -52,8 +51,8 @@ class Processor(abc.ABC):
 
 
 # Registry is populated by sibling modules importing this module's
-# :func:`register` function. We avoid a hard import order by using a dict that
-# sibling modules patch at import time.
+# :func:`register` function. Sibling modules patch at import time so we avoid a
+# hard import order.
 REGISTRY: dict[str, ProcessorBuilder] = {}
 
 

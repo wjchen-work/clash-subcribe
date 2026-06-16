@@ -16,9 +16,6 @@ def test_registry_has_four_processors() -> None:
 
 def test_dedup_collapses_duplicates(sample_proxies) -> None:
     out = DedupProcessor()(sample_proxies)
-    # HK_SS and HK_SS_DUP share server/port/password/cipher; the first
-    # occurrence wins so users get stable ordering relative to their
-    # ``sources`` list.
     assert len(out) == len(sample_proxies) - 1
     assert {p.name for p in out} == {"HK-01", "JP-01", "US-NY-01", "JP-02 免费"}
 
@@ -47,7 +44,6 @@ def test_rename_with_prefix_and_region(sample_proxies) -> None:
     )
     out = build(entry)(sample_proxies)
     assert out[0].name.startswith("[A] [HK] 001")
-    # Stacking should not re-add a leading tag.
     out2 = build(entry)(out)
     assert out2[0].name.startswith("[A] [HK] 001")
 

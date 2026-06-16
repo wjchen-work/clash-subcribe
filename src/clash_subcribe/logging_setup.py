@@ -13,16 +13,12 @@ from typing import Final
 
 from rich.logging import RichHandler
 
-# Reserve the project namespace so third-party loggers stay quiet.
 _LOGGER_NAME: Final[str] = "clash_subcribe"
 
-# Format used for the (optional) file handler — structured, line-oriented.
 _FILE_FORMAT: Final[str] = "%(asctime)s %(levelname)-8s %(name)s :: %(message)s"
 
-# Format used by RichHandler — keep message concise; module + level live in the handler.
 _CONSOLE_FORMAT: Final[str] = "%(message)s"
 
-# Sensible default cap for third-party chatter (httpx, etc.).
 _THIRD_PARTY_QUIET_LEVEL: Final[int] = logging.WARNING
 
 
@@ -46,7 +42,6 @@ def configure_logging(
     root = logging.getLogger()
     root.setLevel(numeric_level)
 
-    # Wipe pre-existing handlers to keep things idempotent.
     for handler in list(root.handlers):
         root.removeHandler(handler)
 
@@ -66,7 +61,6 @@ def configure_logging(
         file_handler.setFormatter(logging.Formatter(_FILE_FORMAT))
         root.addHandler(file_handler)
 
-    # Keep chatty third-party libs at WARNING so they don't drown the console.
     for noisy in ("httpx", "httpcore"):
         logging.getLogger(noisy).setLevel(_THIRD_PARTY_QUIET_LEVEL)
 

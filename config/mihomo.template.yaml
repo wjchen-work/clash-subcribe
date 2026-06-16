@@ -4,7 +4,7 @@ mixed-port: 7890
 allow-lan: true
 log-level: info
 ipv6: true
-external-controller: ''
+external-controller: '127.0.0.1:9090'
 secret: wjchen
 unified-delay: true
 
@@ -103,27 +103,36 @@ hosts:
 
 # 代理组：proxies 列表中出现的 __ALL__ 占位符会在渲染时由 clash-subcribe
 # 展开为当前 pipeline 输出的全部代理节点名（按最终顺序、仅展开一次）。
+# 此外，__PROXY__:<kw1,kw2,...> 占位符会按名称关键词（不区分大小写、OR 语义）
+# 挑选匹配的代理节点；无匹配时展开为空但组本身保留，避免 rules 引用失效。
 # 其余字符串（如 AUTO / DIRECT 等固定引用）原样保留。
 proxy-groups:
-  - name: Proxy
+  - name: 节点选择
     type: select
     proxies:
-      - AUTO
-      - DIRECT
+      - 自动选择
+      - 故障转移
+      - 美国节点
       - __ALL__
-  - name: AUTO
+      - DIRECT
+  - name: 自动选择
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
-    tolerance: 50
     proxies:
       - __ALL__
-  - name: FALLBACK
+  - name: 故障转移
     type: fallback
     url: http://www.gstatic.com/generate_204
     interval: 1800
     proxies:
       - __ALL__
+  - name: 美国节点
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies:
+      - __PROXY__:美国,🇺🇸
 
 rules:
   - 'IP-CIDR,1.1.1.1/32,节点选择'

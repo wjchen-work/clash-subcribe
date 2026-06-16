@@ -4,8 +4,8 @@ Stages (each one independent, each one testable in isolation)::
 
     fetch -> parse -> merge -> processors -> render -> emit
 
-The orchestrator's only job is to thread context (timers, partial failures,
-final stats) between the stages and emit the §5.2 log lines.
+The orchestrator threads context (timers, partial failures, final stats)
+between the stages and emits the §5.2 log lines.
 """
 
 from __future__ import annotations
@@ -96,11 +96,6 @@ def run(
     )
 
 
-# --------------------------------------------------------------------------------------
-# Internal helpers
-# --------------------------------------------------------------------------------------
-
-
 def _gather_proxies(
     config: UserConfig,
     *,
@@ -125,7 +120,7 @@ def _gather_proxies(
         parser = parser_pkg.make_parser(result.text)
         try:
             proxies = parser.parse(result.text)
-        except Exception as exc:  # parser-level errors are unrecoverable for that source
+        except Exception as exc:
             logger.error("[%s] 解析失败: %s", source.name, exc, exc_info=True)
             if source.required:
                 raise

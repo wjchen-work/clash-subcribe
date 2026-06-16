@@ -17,10 +17,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .exceptions import ConfigError
 
-# --------------------------------------------------------------------------------------
-# Source: exactly one of (url, path) must be set.
-# --------------------------------------------------------------------------------------
-
 
 class SourceConfig(BaseModel):
     """A single subscription source."""
@@ -30,7 +26,6 @@ class SourceConfig(BaseModel):
     name: str
     url: str | None = None
     path: str | None = None
-    # When True, a failure on this source aborts the whole pipeline.
     required: bool = False
 
     @model_validator(mode="after")
@@ -44,11 +39,6 @@ class SourceConfig(BaseModel):
     @property
     def transport(self) -> Literal["http", "file"]:
         return "http" if self.url is not None else "file"
-
-
-# --------------------------------------------------------------------------------------
-# Processors: ordered list accepting bare names or {name: options}.
-# --------------------------------------------------------------------------------------
 
 
 class ProcessorEntry(BaseModel):
@@ -89,11 +79,6 @@ class ProcessorEntry(BaseModel):
         raise ValueError(f"processor entry must be a string or a single-key mapping, got {data!r}")
 
 
-# --------------------------------------------------------------------------------------
-# Output: file | stdout | http.
-# --------------------------------------------------------------------------------------
-
-
 class FileOutputConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["file"]
@@ -121,11 +106,6 @@ OutputConfig = Annotated[
 ]
 
 
-# --------------------------------------------------------------------------------------
-# Top-level user config.
-# --------------------------------------------------------------------------------------
-
-
 class UserConfig(BaseModel):
     """Root user configuration loaded from YAML."""
 
@@ -134,11 +114,6 @@ class UserConfig(BaseModel):
     sources: list[SourceConfig]
     processors: list[ProcessorEntry] = Field(default_factory=list)
     output: OutputConfig
-
-
-# --------------------------------------------------------------------------------------
-# Loader.
-# --------------------------------------------------------------------------------------
 
 
 def load_config(path: str | Path) -> UserConfig:
@@ -165,5 +140,5 @@ def load_config(path: str | Path) -> UserConfig:
 
     try:
         return UserConfig.model_validate(raw)
-    except Exception as exc:  # pydantic.ValidationError is a subclass
+    except Exception as exc:
         raise ConfigError(f"invalid config {config_path}: {exc}") from exc

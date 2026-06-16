@@ -6,8 +6,6 @@ from .base import Parser
 from .clash_parser import ClashParser
 from .url_parser import URLParser
 
-# Markers for the formats we support. Adding a new parser is just a matter of
-# adding a marker and a branch below.
 _YAML_MARKERS: tuple[str, ...] = ("---", "{", "\n")
 _URL_PREFIXES: tuple[str, ...] = (
     "ss://",

@@ -1,8 +1,8 @@
 """Clash YAML parser.
 
 Most subscriptions are a Clash YAML config with a ``proxies:`` list — that's
-all we look at. ``proxy-groups``, ``rules``, etc. are ignored at this stage;
-the renderer takes care of those from the template.
+all we look at. ``proxy-groups``, ``rules``, etc. are ignored here; the
+renderer handles them from the template.
 """
 
 from __future__ import annotations

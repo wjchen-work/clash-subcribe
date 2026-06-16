@@ -1,4 +1,4 @@
-"""File emitter — write the rendered YAML to a local path."""
+"""File emitter — writes the rendered YAML to a local path."""
 
 from __future__ import annotations
 

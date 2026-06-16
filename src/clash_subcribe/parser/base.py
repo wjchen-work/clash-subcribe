@@ -1,9 +1,8 @@
 """Parser base class + auto-detection.
 
 A parser turns the raw text returned by a fetcher into a list of
-:class:`~clash_subcribe.models.Proxy` models. We auto-detect the format by
-inspection (YAML starts with ``---`` or looks like a mapping; bare URLs start
-with ``ss://``/``vmess://``/etc.; everything else is rejected).
+:class:`~clash_subcribe.models.Proxy` models. The format is auto-detected
+(YAML vs. bare URL); everything else is rejected.
 """
 
 from __future__ import annotations
@@ -18,8 +17,6 @@ from ..models import Proxy
 
 logger = logging.getLogger(__name__)
 
-# Markers for the formats we support. Adding a new parser is just a matter of
-# adding a marker and a branch below.
 _YAML_MARKERS: Final[tuple[str, ...]] = ("---", "{", "\n")
 
 

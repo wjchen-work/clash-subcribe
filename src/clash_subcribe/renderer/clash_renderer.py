@@ -1,10 +1,8 @@
 """Render a proxy list + template into a Clash YAML document.
 
-The renderer is intentionally template-driven: when the user supplies a
-``clash.template.yaml`` we lift ``proxy-groups`` / ``rule-providers`` / ``rules``
-and any other top-level keys verbatim and only replace the ``proxies`` list.
-When no template is provided, we emit a minimal valid Clash config so the
-tool still works out of the box.
+Template-driven: lift ``proxy-groups`` / ``rule-providers`` / ``rules`` and
+other top-level keys verbatim and only replace ``proxies``. Without a
+template, emit a minimal valid Clash config.
 """
 
 from __future__ import annotations
@@ -20,15 +18,11 @@ from ..models import ClashConfig, Proxy
 
 logger = logging.getLogger(__name__)
 
-# Keys that are explicitly modeled on :class:`ClashConfig` — everything else
-# in the template YAML is preserved in :attr:`ClashConfig.extras`.
 _KNOWN_KEYS: frozenset[str] = frozenset({"proxies", "proxy-groups", "rule-providers", "rules"})
 
-# Sentinel name that, when placed inside a ``proxy-groups[*].proxies`` list,
-# is expanded at render time to the names of every proxy known to the pipeline.
-# The double-underscore wrapping keeps it visually distinct and avoids any
-# clash with real proxy names.
 ALL_PROXIES_TOKEN: str = "__ALL__"
+
+FILTER_TOKEN_PREFIX: str = "__PROXY__:"
 
 
 class ClashRenderer:
@@ -68,7 +62,7 @@ class ClashRenderer:
         return ClashConfig(
             proxies=proxies,
             proxy_groups=[
-                _expand_all_token(g, proxy_names) for g in _coerce_list(raw.get("proxy-groups"))
+                _expand_tokens(g, proxy_names) for g in _coerce_list(raw.get("proxy-groups"))
             ],
             rule_providers=_coerce_dict(raw.get("rule-providers")),
             rules=_coerce_str_list(raw.get("rules")),
@@ -100,28 +94,66 @@ def _coerce_str_list(value: Any) -> list[str]:
     return [str(item) for item in value]
 
 
-def _expand_all_token(group: dict[str, Any], proxy_names: list[str]) -> dict[str, Any]:
-    """Replace the ``__ALL__`` placeholder in a group's ``proxies`` list.
+def _expand_tokens(group: dict[str, Any], proxy_names: list[str]) -> dict[str, Any]:
+    """Expand the proxy-name placeholders in a group's ``proxies`` list.
 
-    The first occurrence of :data:`ALL_PROXIES_TOKEN` is expanded **in place**
-    to the proxy names, preserving the relative order of both leading and
-    trailing references (e.g. ``AUTO`` / ``DIRECT``). Subsequent occurrences
-    of the token are left untouched so a group's ``proxies`` list never ends
-    up with duplicate entries — mihomo rejects duplicates inside a group.
+    - :data:`ALL_PROXIES_TOKEN` (``__ALL__``) expands to the full proxy name
+      list; only the first occurrence is expanded so a group never ends up
+      with duplicate entries (mihomo rejects duplicates inside a group).
+    - :data:`FILTER_TOKEN_PREFIX` (``__PROXY__:kw1,kw2,...``) expands to
+      every proxy whose ``name`` contains any of the keywords
+      (case-insensitive, OR semantics), preserving original proxy ordering.
+      An empty match expands to an empty slot; the group is preserved so
+      rule references keep resolving.
 
-    Groups without a ``proxies`` list, or whose list does not contain the
-    token, are returned unchanged.
+    Groups without a ``proxies`` list, or with no placeholder, are returned
+    unchanged.
     """
     proxies_field = group.get("proxies")
     if not isinstance(proxies_field, list):
         return group
-    try:
-        idx = proxies_field.index(ALL_PROXIES_TOKEN)
-    except ValueError:
-        return group
-    expanded: list[Any] = [
-        *proxies_field[:idx],
-        *proxy_names,
-        *proxies_field[idx + 1 :],
-    ]
+    expanded: list[Any] = []
+    all_consumed = False
+    for item in proxies_field:
+        if not isinstance(item, str):
+            expanded.append(item)
+            continue
+        if item == ALL_PROXIES_TOKEN:
+            if all_consumed:
+                expanded.append(item)
+            else:
+                expanded.extend(proxy_names)
+                all_consumed = True
+            continue
+        if item.startswith(FILTER_TOKEN_PREFIX):
+            keywords = _parse_filter_keywords(item)
+            expanded.extend(_filter_proxy_names(proxy_names, keywords))
+            continue
+        expanded.append(item)
     return {**group, "proxies": expanded}
+
+
+def _parse_filter_keywords(token: str) -> list[str]:
+    """Extract the keyword list from a ``__PROXY__:...`` placeholder.
+
+    Raises:
+        RenderError: if the placeholder is malformed (no keywords).
+    """
+    suffix = token[len(FILTER_TOKEN_PREFIX) :]
+    keywords = [piece.strip() for piece in suffix.split(",")]
+    keywords = [k for k in keywords if k]
+    if not keywords:
+        raise RenderError(
+            f"过滤占位符 {token!r} 缺少关键词；期望格式为 '{FILTER_TOKEN_PREFIX}kw1,kw2'"
+        )
+    return keywords
+
+
+def _filter_proxy_names(proxy_names: list[str], keywords: list[str]) -> list[str]:
+    """Return ``proxy_names`` filtered by an OR-of-keywords match.
+
+    Substring-based and case-insensitive — covers both Chinese region tags
+    (``美国``) and Latin tags (``US``) that real-world providers mix.
+    """
+    lowered = [k.casefold() for k in keywords]
+    return [name for name in proxy_names if any(k in name.casefold() for k in lowered)]

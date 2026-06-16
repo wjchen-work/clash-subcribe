@@ -1,9 +1,9 @@
 """Emitter base class.
 
-An emitter's only job is to deliver the rendered YAML text to a destination
-(file, stdout, or eventually an HTTP server). The renderer has no idea
-where its output goes. The factory lives in the package ``__init__`` to
-sidestep the circular import the concrete emitters would otherwise create.
+An emitter delivers the rendered YAML text to a destination (file, stdout,
+or eventually an HTTP server). The factory lives in the package
+``__init__`` to sidestep the circular import the concrete emitters would
+otherwise create.
 """
 
 from __future__ import annotations

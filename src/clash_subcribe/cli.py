@@ -26,7 +26,6 @@ from .exceptions import ClashSubError, ConfigError
 from .logging_setup import configure_logging
 from .pipeline import run as run_pipeline
 
-# Exit codes per §7.
 EXIT_OK = 0
 EXIT_PARTIAL = 1
 EXIT_FAIL = 2
@@ -113,7 +112,6 @@ def _apply_output_override(config: UserConfig, override: str | None) -> UserConf
     if override == "stdout":
         new_output = StdoutOutputConfig(type="stdout", template=getattr(current, "template", None))
     elif override == "file":
-        # If the existing output is already a file config, keep its path.
         path = getattr(current, "path", "./output.yaml")
         new_output = FileOutputConfig(
             type="file", path=path, template=getattr(current, "template", None)

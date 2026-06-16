@@ -1,10 +1,8 @@
 """Clash config model — the rendered output container.
 
-A :class:`ClashConfig` is what the renderer produces and what emitters write.
-We model the four sections we actually touch (proxies, proxy-groups,
-rule-providers, rules) and keep the rest of the Clash YAML in
-:attr:`extras` so a template's ``mixed-port``, ``mode``, ``log-level`` etc.
-are preserved verbatim.
+We model the four sections we touch (proxies, proxy-groups, rule-providers,
+rules) and keep the rest of the Clash YAML in :attr:`extras` so a template's
+``mixed-port`` / ``mode`` / ``log-level`` etc. are preserved verbatim.
 """
 
 from __future__ import annotations
@@ -28,9 +26,6 @@ class ClashConfig(BaseModel):
             (mixed-port, mode, log-level, sniffer, tun, dns, ...).
     """
 
-    # ``populate_by_name=True`` lets the renderer use the Python attribute
-    # names (``proxy_groups``) while still serializing to the Clash-canonical
-    # form (``proxy-groups``) — see :meth:`to_dict`.
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     proxies: list[Proxy] = Field(default_factory=list)

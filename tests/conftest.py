@@ -1,17 +1,12 @@
-"""Project-wide pytest fixtures.
-
-We keep the fixtures small and explicit — anything fancier (parametrize,
-autouse) lives in the individual test files.
-"""
+"""Project-wide pytest fixtures."""
 
 from __future__ import annotations
 
 import pytest
 
 from clash_subcribe import logging_setup
-from tests._fixtures import SAMPLE_PROXIES, SAMPLE_YAML  # noqa: F401  re-exported
+from tests._fixtures import SAMPLE_PROXIES, SAMPLE_YAML  # noqa: F401
 
-# Quiet the project's loggers during tests so the test runner output stays readable.
 logging_setup.configure_logging(level="WARNING")
 
 

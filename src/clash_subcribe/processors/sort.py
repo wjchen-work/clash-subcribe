@@ -1,10 +1,6 @@
 """Sort proxies by name / type / custom weight.
 
-Supported ``by`` values:
-
-- ``name`` (default) — case-insensitive lexicographic on ``proxy.name``
-- ``type`` — group by proxy type, then name
-- ``weight`` — pair each type with a numeric weight (lower = earlier)
+Supported ``by`` values: ``name`` (default), ``type``, ``weight``.
 """
 
 from __future__ import annotations
@@ -41,7 +37,6 @@ class SortProcessor(Processor):
             return sorted(proxies, key=lambda p: p.name.lower())
         if self._by == "type":
             return sorted(proxies, key=lambda p: (p.type, p.name.lower()))
-        # weight
         return sorted(
             proxies,
             key=lambda p: (self._weights.get(p.type, 999), p.name.lower()),

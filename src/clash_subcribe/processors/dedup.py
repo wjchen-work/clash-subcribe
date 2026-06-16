@@ -1,8 +1,8 @@
 """Deduplicate proxies by their :meth:`Proxy.fingerprint`.
 
-Two nodes that point at the same backend (different provider, same server
-and credentials) collapse to one. We keep the *first* occurrence so users
-get stable ordering relative to their ``sources`` list.
+Two nodes that point at the same backend collapse to one. The first
+occurrence wins so users get stable ordering relative to their ``sources``
+list.
 """
 
 from __future__ import annotations
@@ -29,7 +29,6 @@ class DedupProcessor(Processor):
 
 
 def _build(options: dict[str, Any]) -> Processor:
-    # ``dedup`` takes no options today; reject any to keep config errors loud.
     if options:
         raise ValueError(f"dedup 不支持选项: {sorted(options)}")
     return DedupProcessor()

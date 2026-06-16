@@ -1,14 +1,10 @@
 """Proxy node data model.
 
-A Clash proxy node is highly polymorphic — ``ss`` carries ``cipher``/``password``
-where ``vmess`` carries ``uuid``/``alterId`` and ``trojan`` carries
-``password``/``sni``. Rather than minting a per-type model, we keep one
-:class:`Proxy` with the union of common fields and let each type's invariants
-be enforced by a light ``model_validator``.
-
-The :meth:`Proxy.fingerprint` method is the key abstraction that lets
-:mod:`clash_subcribe.processors.dedup` collapse two nodes from different
-providers that ultimately point at the same backend.
+A Clash proxy node is polymorphic (different types carry different fields);
+we keep one :class:`Proxy` with the union of common fields and enforce
+per-type invariants via :meth:`Proxy._validate_type_required_fields`.
+:meth:`Proxy.fingerprint` collapses nodes from different providers that
+ultimately point at the same backend.
 """
 
 from __future__ import annotations
@@ -18,7 +14,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-# The subset of Clash proxy types we accept in MVP. New types are easy to add.
 ProxyType = Literal[
     "ss",
     "ssr",
@@ -32,7 +27,6 @@ ProxyType = Literal[
     "vless",
 ]
 
-# Aliases users may write — normalize to the canonical form.
 _TYPE_ALIASES: dict[str, str] = {
     "hy2": "hysteria2",
 }
@@ -41,9 +35,8 @@ _TYPE_ALIASES: dict[str, str] = {
 class Proxy(BaseModel):
     """A single Clash proxy node.
 
-    Required fields: ``name``, ``type``, ``server``, ``port``.
-    Everything else is type-specific and lives in the optional bag below.
-    Use :meth:`to_clash_dict` to dump a Clash-compatible dict preserving only
+    Required: ``name``, ``type``, ``server``, ``port``. Use
+    :meth:`to_clash_dict` to dump a Clash-compatible dict preserving only
     the fields that were set — keeping diffs stable.
     """
 
@@ -53,7 +46,6 @@ class Proxy(BaseModel):
     type: str
     server: str
     port: int = Field(ge=1, le=65535)
-    # ---- Optional, per-type fields ----
     cipher: str | None = None
     password: str | None = None
     uuid: str | None = None
@@ -66,16 +58,12 @@ class Proxy(BaseModel):
     network: str | None = None
     ws_path: str | None = Field(default=None, alias="ws-path")
     ws_headers: dict[str, str] | None = Field(default=None, alias="ws-headers")
-    # ssr-specific
     protocol: str | None = None
     protocol_param: str | None = Field(default=None, alias="protocol-param")
     obfs: str | None = None
     obfs_param: str | None = Field(default=None, alias="obfs-param")
-    # http/socks
     username: str | None = None
-    # hysteria2
     auth_str: str | None = Field(default=None, alias="auth_str")
-    # Catch-all for anything we haven't modeled. Useful while we grow the schema.
     extra: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("type")
@@ -105,12 +93,7 @@ class Proxy(BaseModel):
         elif t == "hysteria":
             if not self.auth_str:
                 raise ValueError("hysteria proxy requires `auth_str`")
-        # http / socks5 / vless are flexible enough that no check is needed in MVP.
         return self
-
-    # ----------------------------------------------------------------------------------
-    # Serialization helpers
-    # ----------------------------------------------------------------------------------
 
     def to_clash_dict(self) -> dict[str, Any]:
         """Return a Clash-compatible dict containing only set fields.
@@ -118,7 +101,6 @@ class Proxy(BaseModel):
         Field names are emitted in a stable, Clash-canonical order so that
         round-tripping a node through this model produces deterministic YAML.
         """
-        # Ordered list keeps diffs readable; only known optional fields are emitted.
         optional_order: list[tuple[str, str | None]] = [
             ("cipher", "cipher"),
             ("password", "password"),
@@ -149,22 +131,15 @@ class Proxy(BaseModel):
             value = getattr(self, attr)
             if value is not None:
                 out[clash_key] = value
-        # Merge unknown fields at the end so user-supplied extras survive round-trips.
         for key, value in self.extra.items():
             out.setdefault(key, value)
         return out
 
-    # ----------------------------------------------------------------------------------
-    # Dedup support
-    # ----------------------------------------------------------------------------------
-
     def fingerprint(self) -> str:
         """Stable identity used for dedup.
 
-        Two proxies from different providers that ultimately point at the same
-        backend collapse to the same fingerprint. The fields that matter
-        differ per type — credentials (uuid/password) are the strongest signal,
-        followed by transport (server+port) and crypto details.
+        Credentials (uuid/password) are the strongest signal, followed by
+        transport (server+port) and crypto details.
         """
         parts: list[tuple[str, Any]] = [
             ("type", self.type),
@@ -182,6 +157,5 @@ class Proxy(BaseModel):
             value = getattr(self, key)
             if value is not None:
                 parts.append((key, value))
-        # Hash so the fingerprint is a fixed-width opaque string.
         raw = "|".join(f"{k}={v}" for k, v in parts)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()

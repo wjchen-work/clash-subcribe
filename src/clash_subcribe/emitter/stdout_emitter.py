@@ -1,7 +1,7 @@
-"""Stdout emitter — print the rendered YAML to a stream (default: ``sys.stdout``).
+"""Stdout emitter — writes the rendered YAML to a stream (default: ``sys.stdout``).
 
-Uses :func:`click.echo` for proper terminal handling and ``nl=False`` because
-the YAML dump already ends in a newline. The stream is overridable in tests.
+Uses :func:`click.echo` with ``nl=False`` because the YAML dump already ends
+in a newline. The stream is overridable in tests.
 """
 
 from __future__ import annotations
@@ -24,7 +24,5 @@ class StdoutEmitter(Emitter):
 
     def emit(self, text: str) -> None:
         click.echo(text, nl=False, file=self._stream)
-        # click.echo adds a newline when nl=True (default); with nl=False the
-        # last newline is preserved if the text already has one.
         size = len(text.encode("utf-8"))
         logger.info("输出到 stdout (%.1f KB)", size / 1024)

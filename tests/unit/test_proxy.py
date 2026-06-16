@@ -34,7 +34,7 @@ class TestProxyConstruction:
 
     def test_required_field_missing_raises(self) -> None:
         with pytest.raises(ValidationError):
-            Proxy(name="n", type="ss", server="1.1.1.1", port=8388, password="x")  # no cipher
+            Proxy(name="n", type="ss", server="1.1.1.1", port=8388, password="x")
 
     def test_invalid_port_raises(self) -> None:
         with pytest.raises(ValidationError):

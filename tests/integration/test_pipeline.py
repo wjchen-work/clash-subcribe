@@ -77,3 +77,68 @@ def test_end_to_end_failed_source_does_not_abort(tmp_path: Path) -> None:
     result = run(cfg)
     assert result.proxy_count == 2
     assert result.failed_sources == ["ghost"]
+
+
+def test_end_to_end_filter_proxy_group(tmp_path: Path) -> None:
+    """Render a template that filters proxies into a region-tagged group.
+
+    Exercises the full fetch → parse → dedup → render chain.
+    """
+    sub = tmp_path / "sub.yaml"
+    sub.write_text(
+        """
+        proxies:
+          - name: HK-01
+            type: ss
+            server: 1.1.1.1
+            port: 8388
+            cipher: aes-256-gcm
+            password: sspass
+          - name: US-NY-01
+            type: vmess
+            server: 2.2.2.2
+            port: 443
+            uuid: 00000000-0000-0000-0000-000000000001
+          - name: 🇺🇸【北美洲】美国01丨专线
+            type: trojan
+            server: 3.3.3.3
+            port: 443
+            password: tjpass
+        """,
+        encoding="utf-8",
+    )
+    tpl = tmp_path / "tpl.yaml"
+    tpl.write_text(
+        """
+        proxy-groups:
+          - name: 节点选择
+            type: select
+            proxies:
+              - 美国节点
+              - __ALL__
+              - DIRECT
+          - name: 美国节点
+            type: select
+            proxies:
+              - __PROXY__:美国,US
+        rules:
+          - GEOSITE,GOOGLE,美国节点
+          - MATCH,DIRECT
+        """,
+        encoding="utf-8",
+    )
+    out = tmp_path / "out.yaml"
+    cfg = UserConfig(
+        sources=[SourceConfig(name="local", path=str(sub))],
+        processors=[ProcessorEntry.model_validate("dedup")],
+        output=FileOutputConfig(type="file", path=str(out), template=str(tpl)),
+    )
+    result = run(cfg)
+    assert result.proxy_count == 3
+    assert result.failed_sources == []
+
+    loaded = yaml.safe_load(out.read_text(encoding="utf-8"))
+    groups = {g["name"]: g["proxies"] for g in loaded["proxy-groups"]}
+    assert groups["美国节点"] == ["US-NY-01", "🇺🇸【北美洲】美国01丨专线"]
+    assert "美国节点" in groups["节点选择"]
+    assert "GEOSITE,GOOGLE,美国节点" in loaded["rules"]

@@ -1,8 +1,7 @@
 """URL parser — stub for the MVP.
 
 Full support for ``ss://`` / ``vmess://`` / ``trojan://`` / ``hysteria2://`` /
-``vless://`` is on the roadmap. For now we raise a clear error so users know
-exactly what's missing.
+``vless://`` is on the roadmap; for now we raise a clear error.
 """
 
 from __future__ import annotations

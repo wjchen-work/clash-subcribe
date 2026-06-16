@@ -1,7 +1,6 @@
 """Local-file fetcher.
 
-Used for ``source.path: ./local.yaml``. Reads synchronously; no concurrency
-needed for a local read.
+Used for ``source.path: ./local.yaml``. Reads synchronously.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ class FileFetcher(Fetcher):
     """Read a subscription from a local file path."""
 
     def __init__(self, source: SourceConfig) -> None:
-        if source.path is None:  # defensive
+        if source.path is None:
             raise ValueError("FileFetcher requires a source with a path")
         self._source = source
         self._path = Path(source.path)

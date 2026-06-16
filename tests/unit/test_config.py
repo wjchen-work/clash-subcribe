@@ -65,7 +65,7 @@ def test_invalid_yaml_raises(tmp_path: Path) -> None:
 
 def test_validation_error_is_wrapped(tmp_path: Path) -> None:
     cfg_file = tmp_path / "bad.yaml"
-    cfg_file.write_text("sources: []\n", encoding="utf-8")  # empty sources
+    cfg_file.write_text("sources: []\n", encoding="utf-8")
     with pytest.raises(ConfigError):
         load_config(cfg_file)
 
