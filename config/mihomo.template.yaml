@@ -1,0 +1,147 @@
+mode: rule
+bind-address: '*'
+mixed-port: 7890
+allow-lan: true
+log-level: info
+ipv6: true
+external-controller: ''
+secret: wjchen
+unified-delay: true
+
+external-controller-cors:
+  allow-origins:
+  - https://metacubex.github.io
+  - http://localhost:3000
+  allow-private-network: true
+
+tun:
+  auto-detect-interface: true
+  auto-route: true
+  device: Mihomo
+  dns-hijack:
+    - any:53
+  mtu: 1500
+  route-exclude-address: []
+  stack: gvisor
+  strict-route: false
+  enable: true
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+dns:
+  enable: true
+  listen: ':53'
+  enhanced-mode: 'fake-ip'
+  fake-ip-range: '198.18.0.1/16'
+  fake-ip-range6: 'fdfe:dcba:9876::1/64'
+  fake-ip-filter-mode: 'blacklist'
+  prefer-h3: false
+  respect-rules: true
+  use-hosts: true
+  use-system-hosts: false
+  ipv6: true
+  direct-nameserver-follow-policy: false
+
+  fake-ip-filter:
+    - '*.lan'
+    - '*.local'
+    - 'ntp.*.com'
+    - 'time.*.com'
+    - '*.gtmc.com.cn'
+    - '*.gac.com.cn'
+    - '*.gaccloud.com.cn'
+    - '*.ds.cn'
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+    ipcidr:
+      - 240.0.0.0/4
+    domain:
+      - +.google.com
+      - +.facebook.com
+      - +.youtube.com
+  fallback:
+    - 114.114.114.114
+
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  direct-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+nameserver-policy:
+  geosite:cn,private:
+    - https://223.5.5.5/dns-query
+    - https://120.53.53.53/dns-query
+    - https://223.5.5.5/dns-query#h3=true
+  geosite:!cn,!private:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+    - https://1.0.0.1/dns-query
+    - https://8.8.4.4/dns-query
+
+hosts:
+  fytx-login-apisit.gtmc.com.cn: '10.3.34.50'
+  gdms.gtmc.com.cn: '172.16.137.27'
+  itsm.gtmc.com.cn: '172.22.1.53'
+  sso.gtmc.com.cn: '172.16.135.194'
+  vdc.vdi.gtmc.com.cn: '172.24.55.20'
+  fytxsit.gtmc.com.cn: '10.3.34.50'
+  fytx-koxsit.gtmc.com.cn: 10.66.228.20
+  fytx-kox-backendapisit.gtmc.com.cn: 10.66.228.20
+
+# 代理组：proxies 列表中出现的 __ALL__ 占位符会在渲染时由 clash-subcribe
+# 展开为当前 pipeline 输出的全部代理节点名（按最终顺序、仅展开一次）。
+# 其余字符串（如 AUTO / DIRECT 等固定引用）原样保留。
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - AUTO
+      - DIRECT
+      - __ALL__
+  - name: AUTO
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+      - __ALL__
+  - name: FALLBACK
+    type: fallback
+    url: http://www.gstatic.com/generate_204
+    interval: 1800
+    proxies:
+      - __ALL__
+
+rules:
+  - 'IP-CIDR,1.1.1.1/32,节点选择'
+  - 'GEOSITE,CATEGORY-ANTICENSORSHIP,节点选择'
+  - 'GEOSITE,LINUXDO,节点选择'
+  - 'GEOSITE,GOOGLE,美国节点'
+  - 'GEOSITE,OPENAI,美国节点'
+  - 'GEOSITE,XAI,美国节点'
+  - 'GEOSITE,ANTHROPIC,美国节点'
+  - 'GEOSITE,GITHUB,节点选择'
+  - 'GEOSITE,MEDIUM,节点选择'
+  - 'GEOSITE,REDDIT,节点选择'
+  - 'GEOSITE,HUGGINGFACE,节点选择'
+  - 'GEOSITE,TELEGRAM,节点选择'
+  - 'GEOSITE,DOCKER,节点选择'
+  - 'GEOSITE,PIXIV,节点选择'
+  - 'GEOSITE,PAYPAL,节点选择'
+  - 'GEOIP,TELEGRAM,节点选择'
+  - 'DOMAIN-SUFFIX,asus.im,节点选择'
+  - 'DOMAIN-SUFFIX,bajie.pw,节点选择'
+  - 'MATCH,DIRECT'

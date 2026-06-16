@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 # in the template YAML is preserved in :attr:`ClashConfig.extras`.
 _KNOWN_KEYS: frozenset[str] = frozenset({"proxies", "proxy-groups", "rule-providers", "rules"})
 
+# Sentinel name that, when placed inside a ``proxy-groups[*].proxies`` list,
+# is expanded at render time to the names of every proxy known to the pipeline.
+# The double-underscore wrapping keeps it visually distinct and avoids any
+# clash with real proxy names.
+ALL_PROXIES_TOKEN: str = "__ALL__"
+
 
 class ClashRenderer:
     """Render ``proxies`` + (optional) template → final YAML text."""
@@ -58,9 +64,12 @@ class ClashRenderer:
         if not isinstance(raw, dict):
             raise RenderError(f"模板根节点必须是 mapping，实际: {type(raw).__name__}")
 
+        proxy_names = [p.name for p in proxies]
         return ClashConfig(
             proxies=proxies,
-            proxy_groups=_coerce_list(raw.get("proxy-groups")),
+            proxy_groups=[
+                _expand_all_token(g, proxy_names) for g in _coerce_list(raw.get("proxy-groups"))
+            ],
             rule_providers=_coerce_dict(raw.get("rule-providers")),
             rules=_coerce_str_list(raw.get("rules")),
             extras={k: v for k, v in raw.items() if k not in _KNOWN_KEYS},
@@ -89,3 +98,30 @@ def _coerce_str_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         raise RenderError(f"`rules` 必须是 list，实际: {type(value).__name__}")
     return [str(item) for item in value]
+
+
+def _expand_all_token(group: dict[str, Any], proxy_names: list[str]) -> dict[str, Any]:
+    """Replace the ``__ALL__`` placeholder in a group's ``proxies`` list.
+
+    The first occurrence of :data:`ALL_PROXIES_TOKEN` is expanded **in place**
+    to the proxy names, preserving the relative order of both leading and
+    trailing references (e.g. ``AUTO`` / ``DIRECT``). Subsequent occurrences
+    of the token are left untouched so a group's ``proxies`` list never ends
+    up with duplicate entries — mihomo rejects duplicates inside a group.
+
+    Groups without a ``proxies`` list, or whose list does not contain the
+    token, are returned unchanged.
+    """
+    proxies_field = group.get("proxies")
+    if not isinstance(proxies_field, list):
+        return group
+    try:
+        idx = proxies_field.index(ALL_PROXIES_TOKEN)
+    except ValueError:
+        return group
+    expanded: list[Any] = [
+        *proxies_field[:idx],
+        *proxy_names,
+        *proxies_field[idx + 1 :],
+    ]
+    return {**group, "proxies": expanded}
