@@ -64,3 +64,9 @@ config/config.yaml
 # 日志
 *.log
 logs/
+
+# ---- Local IDE / dev env (per-user) ----
+# 个人 MCP 配置（含本地 IP），不进入版本控制
+.mcp.json
+# Claude Code 本地权限白名单（settings.local.json 为 local-only 命名约定）
+.claude/settings.local.json

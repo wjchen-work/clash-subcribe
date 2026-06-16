@@ -1,0 +1,55 @@
+# clash-subcribe 使用的 Clash 模板。
+# `proxies:` 段会被脚本生成的内容整体替换，其余段原样保留并写入输出。
+#
+# 下面是一个最小可工作的 Clash.Meta / mihomo 配置：开 TUN、规则集走 GitHub。
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: false
+
+dns:
+  enable: true
+  listen: 127.0.0.1:53
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+
+# 代理组：proxies 列表会在渲染时由 clash-subcribe 注入。
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - AUTO
+      - DIRECT
+      - REJECT
+  - name: AUTO
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    # 下面这条 `proxies:` 子项会在渲染时由脚本自动追加所有节点名。
+
+# 规则集（外部 ruleset，从远端加载）。
+rule-providers:
+  private:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geoip/private.yaml
+    path: ./rules/private.yaml
+    interval: 86400
+  gfw:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geosite/gfw.yaml
+    path: ./rules/gfw.yaml
+    interval: 86400
+
+# 路由规则 —— 仅示例，请按需替换。
+rules:
+  - RULE-SET,private,DIRECT
+  - RULE-SET,gfw,Proxy
+  - GEOIP,CN,DIRECT
+  - MATCH,Proxy

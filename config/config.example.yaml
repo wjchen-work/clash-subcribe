@@ -1,0 +1,44 @@
+# clash-subcribe 用户配置示例。
+# 用法：uv run python -m clash_subcribe -c config/config.example.yaml
+#
+# 完整字段说明见 README.md / CLAUDE.md。本文件以注释形式给出常用片段。
+
+# --------------------------------------------------------------------------------------
+# 1. sources —— 至少一个，可包含 HTTP(S) 订阅与本地文件，按声明顺序处理。
+# --------------------------------------------------------------------------------------
+sources:
+  - name: provider-a               # 人类可读的源名，会出现在日志里
+    url: https://sub.example.com/xxx   # HTTP(S) 订阅链接
+    # required: true                # 默认 false；true 时该源失败会让整个 pipeline 报错
+  - name: provider-b
+    url: https://sub2.example.com/yyy
+  # 本地文件源：取消注释并把 path 指向一个真实的 Clash YAML 即可启用。
+  # - name: local-backup
+  #   path: ./local.yaml            # 本地文件：纯 Clash YAML，结构同 HTTP 源
+
+# --------------------------------------------------------------------------------------
+# 2. processors —— 按声明顺序执行。每个条目可写成裸名 `- dedup`，或带选项
+#    `- filter: { keywords: [...] }`。
+# --------------------------------------------------------------------------------------
+processors:
+  - dedup                          # 按 server:port + type + 指纹去重
+
+  - filter:                        # 过滤，AND 关系：所有条件都满足才保留
+      regions: [HK, JP, US]        # 只保留名字里出现这些地区标签的节点
+      protocols: [ss, trojan, vmess]  # 只保留指定协议
+
+  - rename:                        # 统一命名（影响后续 proxy-groups 的引用）
+      prefix: "[A]"                # 前缀
+      add_region_tag: true         # 自动加 [HK] / [JP] / [US] 之类的地区标签
+      add_index: true              # 三位数序号
+
+  - sort:                          # 排序
+      by: type                     # name | type | weight
+
+# --------------------------------------------------------------------------------------
+# 3. output —— 写到哪里。type 必须是 file / stdout / http 之一。
+# --------------------------------------------------------------------------------------
+output:
+  type: file
+  path: ./output.yaml              # 当 type=file 时必填
+  template: ./config/clash.template.yaml  # 可选；不填则用最小化模板
