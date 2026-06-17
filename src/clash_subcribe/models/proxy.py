@@ -1,31 +1,23 @@
 """Proxy node data model.
 
 A Clash proxy node is polymorphic (different types carry different fields);
-we keep one :class:`Proxy` with the union of common fields and enforce
-per-type invariants via :meth:`Proxy._validate_type_required_fields`.
-:meth:`Proxy.fingerprint` collapses nodes from different providers that
-ultimately point at the same backend.
+because protocols keep evolving, this model is intentionally permissive —
+unknown fields are preserved verbatim in :attr:`Proxy.model_extra` and only
+the truly universal metadata (``name`` / ``type`` / ``server`` / ``port``)
+is treated as required. Per-type invariants (``ss`` 必须带 ``cipher`` 之类)
+are **not** enforced here; the downstream Clash client is the source of truth
+for protocol-level validity. :meth:`Proxy.fingerprint` collapses nodes from
+different providers that ultimately point at the same backend.
 """
 
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-ProxyType = Literal[
-    "ss",
-    "ssr",
-    "vmess",
-    "trojan",
-    "http",
-    "socks5",
-    "hysteria",
-    "hysteria2",
-    "hy2",
-    "vless",
-]
+ProxyType = str
 
 _TYPE_ALIASES: dict[str, str] = {
     "hy2": "hysteria2",
@@ -35,12 +27,14 @@ _TYPE_ALIASES: dict[str, str] = {
 class Proxy(BaseModel):
     """A single Clash proxy node.
 
-    Required: ``name``, ``type``, ``server``, ``port``. Use
-    :meth:`to_clash_dict` to dump a Clash-compatible dict preserving only
-    the fields that were set — keeping diffs stable.
+    Required: ``name``, ``type``, ``server``, ``port``. Any additional keys
+    present in the source subscription are preserved in :attr:`model_extra`
+    and round-tripped through :meth:`to_clash_dict`, so newly-introduced
+    protocol fields (e.g. an unknown ``type`` or transport-specific option)
+    flow through untouched.
     """
 
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     name: str
     type: str
@@ -74,32 +68,14 @@ class Proxy(BaseModel):
             raise ValueError("proxy type cannot be empty")
         return canonical
 
-    @model_validator(mode="after")
-    def _validate_type_required_fields(self) -> Proxy:
-        """Enforce the per-type required-field contract."""
-        t = self.type
-        if t == "ss":
-            if not self.cipher or not self.password:
-                raise ValueError("ss proxy requires `cipher` and `password`")
-        elif t == "ssr":
-            if not self.cipher or not self.password or not self.protocol or not self.obfs:
-                raise ValueError("ssr proxy requires `cipher`, `password`, `protocol`, `obfs`")
-        elif t == "vmess":
-            if not self.uuid:
-                raise ValueError("vmess proxy requires `uuid`")
-        elif t in ("trojan", "hysteria2"):
-            if not self.password:
-                raise ValueError(f"{t} proxy requires `password`")
-        elif t == "hysteria":
-            if not self.auth_str:
-                raise ValueError("hysteria proxy requires `auth_str`")
-        return self
-
     def to_clash_dict(self) -> dict[str, Any]:
         """Return a Clash-compatible dict containing only set fields.
 
         Field names are emitted in a stable, Clash-canonical order so that
         round-tripping a node through this model produces deterministic YAML.
+        Unknown source fields (``model_extra``) are merged in, last-wins on
+        collisions with declared fields, so newly-added protocol options
+        survive the round-trip.
         """
         optional_order: list[tuple[str, str | None]] = [
             ("cipher", "cipher"),
@@ -132,6 +108,8 @@ class Proxy(BaseModel):
             if value is not None:
                 out[clash_key] = value
         for key, value in self.extra.items():
+            out.setdefault(key, value)
+        for key, value in (self.model_extra or {}).items():
             out.setdefault(key, value)
         return out
 

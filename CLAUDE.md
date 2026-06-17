@@ -14,6 +14,7 @@
   - 排序策略（按名称 / 类型 / 自定义权重）
   - 配置增强（rule-providers、rules、proxy-groups、TUN/REDIR 等模板注入）
   - 节点健康检查（可选：HTTP/TCP ping）
+- **协议字段不校验**：订阅里出现的 `type`、必填字段、未知字段一律透传，**不**做按协议类型的强校验（`ss` 必须带 `cipher` 之类）；协议不断迭代，把这一层校验交给下游 Clash/mihomo 客户端。只有 `name` / `type` / `server` / `port` 四个**通用元信息**是必填的。
 - **多种输出**：
   - 写入本地 YAML 文件
   - 输出到 `stdout`

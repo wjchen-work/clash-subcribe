@@ -42,12 +42,13 @@ class ClashParser(Parser):
         skipped = 0
         for index, raw in enumerate(raw_proxies):
             if not isinstance(raw, dict):
+                logger.debug("proxy #%d 非 mapping，已跳过", index)
                 skipped += 1
                 continue
             try:
                 proxies.append(Proxy.model_validate(raw))
             except ValidationError as exc:
-                logger.debug("proxy #%d 校验失败: %s", index, exc)
+                logger.debug("proxy #%d 缺少必要字段或字段类型不合法: %s", index, exc)
                 skipped += 1
         logger.info(
             "解析完成：%d 节点（跳过 %d 条不可解析条目）",

@@ -57,10 +57,7 @@ SAMPLE_YAML = dedent(
         port: 8388
         cipher: aes-256-gcm
         password: sspass
-      - name: broken
-        type: ss
-        server: 3.3.3.3
-        port: 8388
+      - not-a-mapping
       - name: US-NY-01
         type: vmess
         server: 2.2.2.2
